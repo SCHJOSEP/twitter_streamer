@@ -6,19 +6,18 @@ from pyspark import SparkContext
 from pyspark.sql import SparkSession
 import tweepy
 import textblob
+import os
 
 
 findspark.init()
 sc = SparkContext()
 spark = SparkSession(sc)
 
-bearer_token = 'token'
-keyword = 'keyword'
-time_limit_seconds = 10
+bearer_token = os.environ['BEARER_TOKEN']
+keyword = os.environ['KEYWORD']
+time_limit_seconds = float(os.environ['TIME_LIMIT'])
 
 buffer = []
-
-# SQLContext(sc).read.parquet("./tweets.parquet").show(20)
 
 
 class TweetsListener(tweepy.StreamingClient):
@@ -56,6 +55,8 @@ while len(buffer) > 100 or not twitter_stream.running:
     columns = ["text", "polarity", "subjectivity"]
     DF = sc.parallelize(buffer).toDF(columns)
     DF.write.mode('overwrite').parquet("./tweets.parquet")
+    # python does not wait to see if spark finished writing
+    time.sleep(3)
     buffer = []
 
 quit()
